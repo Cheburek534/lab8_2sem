@@ -74,3 +74,47 @@ class RateLimitProxy {
     return this.client.request(req);
   }
 }
+class GitHubService {
+  constructor(client) { this.client = client; }
+ 
+  getUser(username) {
+    return this.client.request({ url: `https://api.github.com/users/${username}` });
+  }
+ 
+  getRepos(username) {
+    return this.client.request({ url: `https://api.github.com/users/${username}/repos` });
+  }
+}
+const TOKEN = process.env.GITHUB_TOKEN || 'demo-token';
+ 
+const service = new GitHubService(
+  new LoggingProxy(
+    new RateLimitProxy(
+      new AuthProxy(new BaseClient(), { type: 'oauth', token: TOKEN }),
+      { limit: 3, windowMs: 5000 }
+    )
+  )
+);
+async function main() {
+  try {
+    const user = await service.getUser('octocat');
+    console.log('User:', user.login, '|', user.public_repos, 'repos');
+  } catch (e) {
+    console.log('Demo (очікувана помилка без реального токена):', e.message);
+  }
+ 
+  console.log('\n Rate-limit demo ');
+  const limitedService = new GitHubService(
+    new RateLimitProxy(new AuthProxy(new BaseClient(), { type: 'apiKey', key: 'my-key' }),
+      { limit: 2, windowMs: 5000 })
+  );
+  for (let i = 1; i <= 3; i++) {
+    try {
+      await limitedService.getUser('octocat');
+    } catch (e) {
+      console.log(`Запит ${i}: ${e.message}`);
+    }
+  }
+}
+ 
+main();
