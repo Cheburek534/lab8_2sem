@@ -47,3 +47,30 @@ class AuthProxy {
     }
   }
 }
+class LoggingProxy {
+  constructor(client) { this.client = client; }
+ 
+  async request(req) {
+    console.log(`[LOG] → ${req.method || 'GET'} ${req.url}`);
+    const res = await this.client.request(req);
+    console.log(`[LOG] ← OK`);
+    return res;
+  }
+}
+class RateLimitProxy {
+  constructor(client, { limit = 5, windowMs = 5000 } = {}) {
+    this.client   = client;
+    this.limit    = limit;
+    this.windowMs = windowMs;
+    this.calls    = [];
+  }
+ 
+  async request(req) {
+    const now = Date.now();
+    this.calls = this.calls.filter(t => now - t < this.windowMs);
+    if (this.calls.length >= this.limit)
+      throw new Error(`Rate limit: max ${this.limit} per ${this.windowMs}ms`);
+    this.calls.push(now);
+    return this.client.request(req);
+  }
+}
