@@ -59,10 +59,10 @@ class LoggingProxy {
 }
 class RateLimitProxy {
   constructor(client, { limit = 5, windowMs = 5000 } = {}) {
-    this.client   = client;
-    this.limit    = limit;
+    this.client = client;
+    this.limit  = limit;
     this.windowMs = windowMs;
-    this.calls    = [];
+    this.calls = [];
   }
  
   async request(req) {
